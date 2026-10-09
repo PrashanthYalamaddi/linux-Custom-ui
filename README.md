@@ -3,9 +3,11 @@
 > **Author & Maintainer:** Prashanth Yalamaddi  
 > **Project:** My Linux Rice (`myLinux`) - Arch + Hyprland Workstation Setup
 
-<div align="center">
-  <video src="demo_video.mp4" width="100%" controls autoplay loop muted></video>
-</div>
+
+
+https://github.com/user-attachments/assets/76d08630-c665-485a-9daa-d4434d722dd8
+
+
 
 This repository bootstraps an Arch + Hyprland workstation with reproducible shell, desktop, settings, and local AI runtime behavior, fully customized and maintained by **Prashanth Yalamaddi**.
 
