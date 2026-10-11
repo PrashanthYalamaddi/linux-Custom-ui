@@ -1,0 +1,90 @@
+* {
+  font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+  background-image: none;
+  box-shadow: none;
+}
+
+window {
+  background-color: rgba(26, 27, 31, 0.88);
+  background-image: url("/home/namik/.config/wlogout/background-abstract.svg");
+  background-size: cover;
+}
+
+button {
+  color: #f2f2f2;
+  background-color: rgba(36, 37, 41, 0.94);
+  border: 1px solid rgba(111, 148, 201, 0.45);
+  border-radius: 14px;
+  margin: 4px;
+  padding: 0;
+  min-width: 128px;
+  min-height: 88px;
+  font-size: 17px;
+  font-weight: 700;
+  background-repeat: no-repeat;
+  background-position: center 30%;
+  background-size: 34px;
+}
+
+button:focus,
+button:active,
+button:hover {
+  background-color: rgba(30, 36, 56, 0.98);
+  border-color: #6f94c9;
+  outline-style: none;
+}
+
+#lock {
+  background-image: url("/usr/share/wlogout/icons/lock.png");
+}
+
+#suspend {
+  background-image: url("/usr/share/wlogout/icons/suspend.png");
+}
+
+#hibernate {
+  background-image: url("/usr/share/wlogout/icons/hibernate.png");
+}
+
+#firmware {
+  background-color: rgba(174, 119, 91, 0.24);
+  border-color: rgba(174, 119, 91, 0.7);
+  background-image: url("/home/namik/.config/wlogout/icons/firmware.svg");
+}
+
+#reboot {
+  background-image: url("/usr/share/wlogout/icons/reboot.png");
+}
+
+#shutdown {
+  background-color: rgba(241,35,50, 0.3);
+  border-color: #f12332;
+  background-image: url("/usr/share/wlogout/icons/shutdown.png");
+}
+
+#logout {
+  background-image: url("/usr/share/wlogout/icons/logout.png");
+}
+
+/* Generated palette overrides. */
+window {
+  background-color: rgba(2,4,2, 0.90);
+}
+
+button {
+  color: #f2f2f2;
+  background-color: rgba(25,30,25, 0.94);
+  border-color: rgba(47,143,158, 0.66);
+}
+
+button:hover,
+button:focus,
+button:active {
+  background-color: rgba(7,11,7, 0.98);
+  border-color: #0097b5;
+}
+
+#firmware {
+  background-color: rgba(0,165,19, 0.20);
+  border-color: rgba(0,165,19, 0.70);
+}

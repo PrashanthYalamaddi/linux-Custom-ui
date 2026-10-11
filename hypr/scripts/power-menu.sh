@@ -1,0 +1,177 @@
+#!/usr/bin/env sh
+set -eu
+
+mode="${1:-full}"
+css_file="$HOME/.config/wlogout/style.css"
+palette_file="$HOME/.cache/hypr/theme-palette.json"
+
+if [ "$mode" = "futuristic" ]; then
+  mode="full"
+  css_file="$HOME/.config/wlogout/style-futuristic.css"
+fi
+
+if [ "$mode" = "minimal" ]; then
+  mode="full"
+  css_file="$HOME/.config/wlogout/style.css"
+fi
+
+theme_hex() {
+  key="$1"
+  default="$2"
+  if command -v jq >/dev/null 2>&1 && [ -f "$palette_file" ]; then
+    v="$(jq -r --arg k "$key" '.[$k] // empty' "$palette_file" 2>/dev/null || true)"
+    if [ -n "$v" ] && [ "$v" != "null" ]; then
+      printf '%s\n' "$v"
+      return 0
+    fi
+  fi
+  printf '%s\n' "$default"
+}
+
+hex_to_rgb() {
+  h="${1#\#}"
+  if [ "${#h}" -ne 6 ]; then
+    printf '255,255,255'
+    return 0
+  fi
+  hr="$(printf '%s' "$h" | cut -c1-2)"
+  hg="$(printf '%s' "$h" | cut -c3-4)"
+  hb="$(printf '%s' "$h" | cut -c5-6)"
+  r="$(printf '%d' "0x$hr")"
+  g="$(printf '%d' "0x$hg")"
+  b="$(printf '%d' "0x$hb")"
+  printf '%s,%s,%s' "$r" "$g" "$b"
+}
+
+prepare_runtime_css() {
+  src="$1"
+  dst="$2"
+  cp "$src" "$dst"
+  sed -i "s|__WLOGOUT_DIR__|$HOME/.config/wlogout|g" "$dst"
+
+  bg="$(theme_hex bg "#1a1b1f")"
+  bg_soft="$(theme_hex bg_soft "#242529")"
+  surface="$(theme_hex surface "#38393c")"
+  surface_alt="$(theme_hex surface_alt "$surface")"
+  text="$(theme_hex text "#e8eefc")"
+  accent="$(theme_hex accent "#ae775b")"
+  accent_soft="$(theme_hex accent_soft "$accent")"
+  success="$(theme_hex success "$accent")"
+  danger="$(theme_hex danger "#ff757f")"
+
+  bg_rgb="$(hex_to_rgb "$bg")"
+  bg_soft_rgb="$(hex_to_rgb "$bg_soft")"
+  surface_rgb="$(hex_to_rgb "$surface")"
+  surface_alt_rgb="$(hex_to_rgb "$surface_alt")"
+  accent_rgb="$(hex_to_rgb "$accent")"
+  accent_soft_rgb="$(hex_to_rgb "$accent_soft")"
+  success_rgb="$(hex_to_rgb "$success")"
+  danger_rgb="$(hex_to_rgb "$danger")"
+
+  sed -i \
+    -e "s/#e8eefc/$text/g" \
+    -e "s/#ae775b/$accent/g" \
+    -e "s/#ff757f/$danger/g" \
+    -e "s/rgba(26, 27, 31, 0.82)/rgba(${bg_rgb}, 0.82)/g" \
+    -e "s/rgba(26, 27, 31, 0.86)/rgba(${bg_rgb}, 0.86)/g" \
+    -e "s/rgba(36, 37, 41, 0.9)/rgba(${bg_soft_rgb}, 0.9)/g" \
+    -e "s/rgba(56, 57, 60, 0.6)/rgba(${surface_rgb}, 0.6)/g" \
+    -e "s/rgba(56, 57, 60, 0.75)/rgba(${surface_rgb}, 0.75)/g" \
+    -e "s/rgba(56, 57, 60, 0.82)/rgba(${surface_rgb}, 0.82)/g" \
+    -e "s/rgba(174, 119, 91, 0.18)/rgba(${accent_rgb}, 0.18)/g" \
+    -e "s/rgba(174, 119, 91, 0.3)/rgba(${accent_rgb}, 0.3)/g" \
+    -e "s/rgba(255, 117, 127, 0.26)/rgba(${danger_rgb}, 0.26)/g" \
+    -e "s/rgba(255, 117, 127, 0.28)/rgba(${danger_rgb}, 0.28)/g" \
+    -e "s/rgba(255, 117, 127, 0.29)/rgba(${danger_rgb}, 0.29)/g" \
+    -e "s/rgba(255, 117, 127, 0.3)/rgba(${danger_rgb}, 0.3)/g" \
+    -e "s/rgba(255, 117, 127, 0.38)/rgba(${danger_rgb}, 0.38)/g" \
+    -e "s/rgba(255, 117, 127, 0.4)/rgba(${danger_rgb}, 0.4)/g" \
+    -e "s/rgba(255, 117, 127, 0.42)/rgba(${danger_rgb}, 0.42)/g" \
+    "$dst"
+
+  cat >>"$dst" <<EOF2
+
+/* Generated palette overrides. */
+window {
+  background-color: rgba(${bg_rgb}, 0.90);
+}
+
+button {
+  color: $text;
+  background-color: rgba(${surface_alt_rgb}, 0.94);
+  border-color: rgba(${accent_soft_rgb}, 0.66);
+}
+
+button:hover,
+button:focus,
+button:active {
+  background-color: rgba(${surface_rgb}, 0.98);
+  border-color: $accent;
+}
+
+#firmware {
+  background-color: rgba(${success_rgb}, 0.20);
+  border-color: rgba(${success_rgb}, 0.70);
+}
+EOF2
+}
+
+show_compact_menu() {
+  choice="$(
+    printf '%s\n' \
+      "󰌾  Lock" \
+      "󰤄  Sleep" \
+      "󰒲  Hibernate" \
+      "󰩬  Firmware" \
+      "󰜉  Reboot" \
+      "󰐥  Shutdown" \
+      "󰍃  Logout" \
+      "󰑐  Restore Panel" |
+      rofi -dmenu -i -p "Power" -theme "$HOME/.config/rofi/actions.rasi"
+  )"
+
+  case "$choice" in
+    "󰌾  Lock") ~/.config/hypr/scripts/lock.sh ;;
+    "󰤄  Sleep") systemctl suspend ;;
+    "󰒲  Hibernate") systemctl hibernate ;;
+    "󰩬  Firmware") systemctl reboot --firmware-setup ;;
+    "󰜉  Reboot") systemctl --no-block reboot ;;
+    "󰐥  Shutdown") systemctl --no-block poweroff ;;
+    "󰍃  Logout")
+      if command -v uwsm >/dev/null 2>&1; then
+        uwsm stop
+      else
+        hyprctl dispatch exit
+      fi
+      ;;
+    "󰑐  Restore Panel") ~/.config/hypr/scripts/panel-switch.sh show ;;
+    *) exit 0 ;;
+  esac
+}
+
+if [ "$mode" = "compact" ]; then
+  show_compact_menu
+  exit 0
+fi
+
+if command -v wlogout >/dev/null 2>&1; then
+  runtime_css="$HOME/.config/wlogout/.runtime-$(basename "$css_file" .css).css"
+
+  # Toggle behavior: if already open, close it instead of spawning another one.
+  if pgrep -x wlogout >/dev/null 2>&1; then
+    pkill -x wlogout
+    exit 0
+  fi
+
+  prepare_runtime_css "$css_file" "$runtime_css"
+
+  exec wlogout \
+    --layout "$HOME/.config/wlogout/layout" \
+    --css "$runtime_css" \
+    --buttons-per-row 7 \
+    --column-spacing 4 \
+    --row-spacing 4 \
+    --show-binds
+fi
+
+show_compact_menu

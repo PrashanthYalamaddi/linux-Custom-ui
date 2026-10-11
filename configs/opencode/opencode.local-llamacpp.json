@@ -1,0 +1,239 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "shell": "/usr/bin/zsh",
+  "provider": {
+    "openai": {
+      "npm": "@ai-sdk/openai",
+      "name": "OpenAI",
+      "models": {
+        "gpt-5.6-luna": {
+          "name": "GPT-5.6 Luna (Vision)",
+          "tool_call": true,
+          "modalities": {"input": ["text", "image"], "output": ["text"]}
+        },
+        "gpt-5.6-luna-fast": {"name": "GPT-5.6 Luna Fast", "tool_call": true},
+        "gpt-5.6-terra": {"name": "GPT-5.6 Terra", "tool_call": true}
+      }
+    },
+    "minimax-coding-plan": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "MiniMax Token Plan",
+      "options": {
+        "baseURL": "https://api.minimax.io/anthropic/v1"
+      },
+      "models": {
+        "MiniMax-M3": {
+          "name": "MiniMax M3",
+          "tool_call": true
+        },
+        "MiniMax-M2.7": {
+          "name": "MiniMax M2.7",
+          "tool_call": true
+        },
+        "MiniMax-M2.5": {
+          "name": "MiniMax M2.5",
+          "tool_call": true
+        },
+        "MiniMax-M2.1": {
+          "name": "MiniMax M2.1",
+          "tool_call": true
+        }
+      }
+    }
+  },
+  "enabled_providers": ["openai", "minimax-coding-plan"],
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "small_model": "minimax-coding-plan/MiniMax-M2.7",
+  "lsp": true,
+  "default_agent": "build",
+  "share": "manual",
+  "experimental": {"subagent_depth": 1},
+  "watcher": {
+    "ignore": [
+      "node_modules/**", ".git/**", ".headroom/**", ".beads/**", "dist/**", "build/**",
+      "coverage/**", ".turbo/**", ".next/**", ".expo/**", "android/.gradle/**",
+      "android/**/build/**", "ios/Pods/**", ".codex/sessions/**", ".codex/archived_sessions/**"
+    ]
+  },
+  "instructions": [
+    "/home/namik/Documents/code/dotfiles/ai/system/GLOBAL_SYSTEM.md",
+    "/home/namik/Documents/code/dotfiles/configs/opencode/instructions/shell_strategy.md"
+  ],
+  "permissions": [
+    {"action": "*", "resource": "*", "effect": "allow"},
+    {"action": "read", "resource": "*.env", "effect": "deny"},
+    {"action": "read", "resource": "*.env.*", "effect": "deny"},
+    {"action": "read", "resource": "*.env.example", "effect": "allow"},
+    {"action": "read", "resource": "~/.ssh/**", "effect": "deny"},
+    {"action": "read", "resource": "~/.codex/auth.json", "effect": "deny"},
+    {"action": "read", "resource": "~/.codex/sessions/**", "effect": "deny"},
+    {"action": "read", "resource": "~/.codex/archived_sessions/**", "effect": "deny"}
+  ],
+  "mcp": {
+    "codegraph": {
+      "type": "local",
+      "command": [
+        "/home/namik/Documents/code/dotfiles/configs/opencode/mcp-scoped.sh",
+        "codegraph"
+      ],
+      "environment": {
+        "NOXFLOW_MCP_PROFILE": "dev"
+      },
+      "enabled": true,
+      "timeout": 30000
+    },
+    "maestro": {
+      "type": "local",
+      "command": [
+        "/home/namik/Documents/code/dotfiles/configs/opencode/mcp-scoped.sh",
+        "maestro"
+      ],
+      "environment": {
+        "NOXFLOW_MCP_PROFILE": "mobile"
+      },
+      "enabled": true,
+      "timeout": 120000
+    },
+    "browser": {
+      "type": "local",
+      "command": ["/home/namik/Documents/code/dotfiles/configs/opencode/mcp-scoped.sh", "browser"],
+      "environment": {"NOXFLOW_MCP_PROFILE": "web"},
+      "enabled": true,
+      "timeout": 120000
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["/home/namik/Documents/code/dotfiles/configs/opencode/mcp-scoped.sh", "playwright"],
+      "environment": {"NOXFLOW_MCP_PROFILE": "web"},
+      "enabled": true,
+      "timeout": 120000
+    },
+    "v0": {
+      "type": "remote",
+      "url": "https://v0.app/api/mcp",
+      "enabled": true
+    },
+    "vp0": {
+      "type": "local",
+      "command": ["npx", "-y", "vp0-mcp"],
+      "enabled": true
+    },
+    "stitch": {
+      "type": "remote",
+      "url": "https://stitch.googleapis.com/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {"X-Goog-Api-Key": "{file:~/.config/opencode/stitch-api-key}"}
+    }
+  },
+  "skills": ["/home/namik/Documents/code/dotfiles/configs/opencode/skills"],
+  "commands": {
+    "fix": {
+      "description": "Implement the smallest verified fix.",
+      "template": "Fix this outcome: $ARGUMENTS\n\nLocate the owner, implement the smallest coherent patch, run the cheapest risk-appropriate check, inspect the diff, and finish. Delegate only one independent bounded slice when it saves duplicated work. Do not commit or push.",
+      "agent": "build"
+    },
+    "ui": {
+      "description": "Implement a focused UI change using the project UI contract.",
+      "template": "Handle this UI outcome: $ARGUMENTS\n\nFor native mobile work, use building-native-ui and mobile-design; apply anti-ui-slop and emil-design-eng where useful. If this is NoxOrigin mobile work, first read /home/namik/Documents/code/dotfiles/ai/system/NOXORIGIN_SYSTEM.md. Use v0 or VP0 MCP only when their design/generation workflows materially help, then adapt results to the repository's actual stack and components. Inspect existing screens, states, tokens, and owner components; make the smallest coherent change; verify on the affected native target where available; report untested targets explicitly.",
+      "agent": "build"
+    },
+    "capture-eval": {
+      "description": "Package the current successful fix into a reusable agent-lab golden case.",
+      "template": "Capture the just-verified fix into an agent-lab golden case.\n\nFollow configs/opencode/agent-lab/commands/capture-eval.md exactly.\n\n1. Read .agent-profile.yaml from the workdir to find golden_root and profile.\n2. Resolve before/after git SHAs from the workdir.\n3. Compute changedFiles.\n4. Slug the task title.\n5. Create the golden directory and write problem.md, meta.json, expected-files.json, expected-invariants.json.\n6. Move the failing-then-passing test into hidden-tests/.\n7. Run `node configs/opencode/agent-lab/runners/opencode.mjs <scenario> <workdir> --baseline` to record the baseline run.\n8. Verify the run is re-runnable: `node configs/opencode/agent-lab/runners/opencode.mjs <scenario> <workdir>` should reproduce PASS.\n\nArgument: $ARGUMENTS — the original task title / problem statement.\n\nDo NOT commit the captured case without explicit user approval.",
+      "agent": "build"
+    },
+    "agent-lab": {
+      "description": "Run an agent-lab scenario or suite and record results.",
+      "template": "Run agent-lab.\n\nArguments: $ARGUMENTS — one of:\n  --scenario <path>       run a single scenario\n  --suite golden          run all golden cases\n  --baseline              also save to results/baseline/\n\nExample:\n  /agent-lab --scenario configs/opencode/agent-lab/scenarios/ui/shipment-table-redesign.json --baseline\n\nImplementation: node configs/opencode/agent-lab/runners/opencode.mjs <scenario> <workdir> [--baseline]\n\nFor UI scenarios, the runner expects pre-captured browser evidence at the paths named in scenario.expected_artifacts[].type='screenshot'.\n\nFor qualitative scenarios, the runner expects either:\n  - a vision agent response (JSON) for UI scoring, or\n  - an LLM grader response (JSON) for text-only scoring.\n\nWhen invoked without browser evidence / pre-computed grader responses, the runner still records what it CAN determine (deterministic + security + structural checks) and marks the visual/llm graders as INCOMPLETE. To complete the run, follow up with the agent that captures the missing evidence.",
+      "agent": "build"
+    }
+  },
+  "plugins": [
+    {
+      "package": "/home/namik/Documents/code/dotfiles/configs/opencode/plugins/tmux-tools",
+      "options": {
+        "socketName": "nox",
+        "sharedSessions": ["nox"]
+      }
+    },
+    "/home/namik/Documents/code/dotfiles/configs/opencode/plugins/safety-guards"
+  ],
+  "tool_output": {"max_lines": 500, "max_bytes": 32768},
+  "compaction": {"auto": true, "keep": {"tokens": 12000}, "buffer": 24000},
+  "agent": {
+    "general": {"disable": true},
+    "build": {
+      "description": "Primary M2.7 implementation agent with all configured tools and skills, including native mobile UI design tools.",
+      "mode": "primary",
+      "model": "minimax-coding-plan/MiniMax-M2.7",
+      "steps": 250,
+      "color": "primary",
+      "permission": {
+        "question": "allow",
+        "plan_enter": "allow",
+        "plan_exit": "allow",
+        "doom_loop": "allow",
+        "read": {"*": "allow", "*.env": "deny", "*.env.*": "deny", "*.env.example": "allow"},
+        "skill": "allow",
+        "subagent": {"*": "deny", "explore-m2.7": "allow", "explore-m2.5": "allow", "worker-m2.7": "allow", "worker-m3": "allow", "worker-luna": "allow"}
+      },
+      "prompt": "Finish the requested outcome. Use any configured tool or skill that materially helps. Work directly by default; spawn one explicit explorer or model worker only for a substantial independent slice. Preserve unrelated work, inspect the final diff, run risk-appropriate validation, and never claim unobserved proof."
+    },
+    "plan": {
+      "description": "Read-only M2.7 planning mode with the full skill catalog and inspection tools.",
+      "mode": "primary",
+      "model": "minimax-coding-plan/MiniMax-M2.7",
+      "steps": 120,
+      "color": "info",
+      "permission": {"edit": "deny", "skill": "allow", "subagent": "deny"},
+      "prompt": "Produce a concise implementation plan grounded in repository evidence. Use any relevant configured skill or inspection tool. Name owners, acceptance criteria, risks, non-goals, and proportional validation. Do not edit or delegate."
+    },
+    "explore-m2.7": {
+      "description": "MiniMax M2.7 explorer for difficult repository investigation.",
+      "mode": "subagent",
+      "model": "minimax-coding-plan/MiniMax-M2.7",
+      "steps": 60,
+      "color": "info",
+      "permission": {"edit": "deny", "skill": "allow", "subagent": "deny"},
+      "prompt": "Answer one bounded repository question. Inspect only relevant files, callers, tests, and history. Do not modify files or launch children. Return concise findings with file:line evidence, uncertainty, and the next useful action."
+    },
+    "explore-m2.5": {
+      "description": "Cheaper MiniMax M2.5 explorer for straightforward repository search and mapping.",
+      "mode": "subagent",
+      "model": "minimax-coding-plan/MiniMax-M2.5",
+      "steps": 50,
+      "color": "info",
+      "permission": {"edit": "deny", "skill": "allow", "subagent": "deny"},
+      "prompt": "Answer one narrow repository question. Use targeted search and relevant files only. Do not modify files or launch children. Return concise findings with file:line evidence and uncertainty."
+    },
+    "worker-m2.7": {
+      "description": "MiniMax M2.7 implementation worker.",
+      "mode": "subagent",
+      "model": "minimax-coding-plan/MiniMax-M2.7",
+      "steps": 200,
+      "color": "primary",
+      "permission": {"skill": "allow", "subagent": "deny"},
+      "prompt": "Complete the assigned implementation end to end. Stay within the stated scope, preserve unrelated work, use relevant tools and skills, run proportional validation, inspect the diff, and return files changed, checks, blockers, and assumptions. Do not launch children, commit, or push."
+    },
+    "worker-m3": {
+      "description": "MiniMax M3 implementation worker for larger or harder bounded tasks.",
+      "mode": "subagent",
+      "model": "minimax-coding-plan/MiniMax-M3",
+      "steps": 220,
+      "color": "warning",
+      "permission": {"skill": "allow", "subagent": "deny"},
+      "prompt": "Complete the assigned implementation end to end. Stay within the stated scope, preserve unrelated work, use relevant tools and skills, run proportional validation, inspect the diff, and return files changed, checks, blockers, and assumptions. Do not launch children, commit, or push."
+    },
+    "worker-luna": {
+      "description": "GPT-5.6 Luna implementation worker for difficult bounded tasks.",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "variant": "medium",
+      "steps": 160,
+      "color": "error",
+      "permission": {"skill": "allow", "subagent": "deny"},
+      "prompt": "Complete the assigned implementation end to end. Stay within the stated scope, preserve unrelated work, use relevant tools and skills, run proportional validation, inspect the diff, and return files changed, checks, blockers, and assumptions. Do not launch children, commit, or push."
+    }
+  }
+}

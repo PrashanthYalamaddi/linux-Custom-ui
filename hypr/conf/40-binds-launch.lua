@@ -1,0 +1,81 @@
+local ctx = assert(NOX_HYPR, "NOX_HYPR context missing")
+local bind = ctx.bind
+local exec = ctx.exec
+local home = ctx.home
+local mainMod = ctx.mainMod
+
+-- Launch / session
+exec(mainMod .. " + Return", ctx.terminal)
+exec(mainMod .. " + Space", home .. "/.local/bin/noxctl panel toggle launcher")
+
+-- NoxFlow feature keybinds (canonical)
+-- SUPER+TAB (overview) is owned by hypr/conf/95-plugins.lua (scroll-overview).
+-- SUPER+SPACE (launcher) above. SUPER+C → control centre, SUPER+M → media,
+-- SUPER+V → Author Clipboard picker, SUPER+S → quick share,
+-- SUPER+W → wallpaper/theme.
+exec(mainMod .. " + C", home .. "/.local/bin/noxctl panel toggle control")
+exec(mainMod .. " + N", home .. "/.local/bin/noxctl panel toggle notifications")
+exec(mainMod .. " + M", home .. "/.local/bin/noxctl panel toggle media")
+exec(mainMod .. " + V", home .. "/.config/hypr/scripts/cliphist-rofi.sh")
+exec(mainMod .. " + S", home .. "/.local/bin/noxctl panel toggle share")
+exec(mainMod .. " + W", home .. "/.local/bin/noxctl panel toggle wallpaper")
+exec(mainMod .. " + SHIFT + S", home .. "/.local/bin/noxctl panel toggle capture")
+exec(mainMod .. " + comma", home .. "/.local/bin/noxctl panel toggle settings")
+exec(mainMod .. " + D", home .. "/.local/bin/noxctl panel toggle dashboard")
+exec(mainMod .. " + SHIFT + C", home .. "/.local/bin/noxctl panel toggle calendar")
+exec(mainMod .. " + SHIFT + B", home .. "/.local/bin/noxctl panel toggle control")
+
+-- Developer: panel-engine switcher (undocumented, debug only)
+-- exec(mainMod .. " + SHIFT + Y", home .. "/.config/hypr/scripts/panel-switch.sh toggle-view")
+-- exec(mainMod .. " + ALT + Y", home .. "/.config/hypr/scripts/panel-switch.sh toggle-view")
+-- exec(mainMod .. " + CTRL + Y", home .. "/.config/hypr/scripts/panel-switch.sh wayle")
+-- exec(mainMod .. " + CTRL + ALT + Y", home .. "/.config/hypr/scripts/panel-switch.sh toggle")
+
+exec(mainMod .. " + CTRL + SHIFT + Y", home .. "/.config/hypr/scripts/theme-pass.sh")
+
+-- Settings hub (terminal TUI) — distinct from QML panel on Super+,
+exec(mainMod .. " + SHIFT + comma", home .. "/.config/hypr/scripts/settings-hub.sh")
+exec(mainMod .. " + ALT + M", home .. "/.config/hypr/scripts/minimize-window.sh restore")
+exec(mainMod .. " + CTRL + comma", home .. "/.config/hypr/scripts/settings-hub.sh quick")
+exec(mainMod .. " + ALT + comma", home .. "/.config/hypr/scripts/settings/editor.sh")
+exec(mainMod .. " + CTRL + ALT + comma", home .. "/.config/hypr/scripts/app-routing-apply-focused.sh")
+exec(mainMod .. " + E", ctx.fileManager)
+exec(mainMod .. " + B", ctx.browser .. " --ozone-platform-hint=auto")
+exec(mainMod .. " + I", ctx.editor)
+exec(mainMod .. " + CTRL + SHIFT + I", ctx.ide)
+exec(mainMod .. " + CTRL + I", home .. "/.config/hypr/scripts/android-dev.sh menu")
+exec(mainMod .. " + ALT + I", home .. "/.config/hypr/scripts/android-dev.sh logcat")
+exec(mainMod .. " + G", home .. "/.config/hypr/scripts/layout-switcher.sh cycle")
+exec(mainMod .. " + ALT + G", home .. "/.config/hypr/scripts/layout-switcher.sh toggle")
+exec(mainMod .. " + P", home .. "/.config/hypr/scripts/monitor-control.sh menu")
+exec(mainMod .. " + H", home .. "/.local/bin/hypr-phone menu")
+exec(mainMod .. " + SHIFT + H", home .. "/.local/bin/hypr-phone mirror --profile default")
+exec(mainMod .. " + CTRL + H", home .. "/.config/hypr/scripts/syncthing-control.sh open-ui")
+exec(mainMod .. " + CTRL + S", home .. "/.local/bin/noxctl panel toggle sync")
+bind(mainMod .. " + ALT + H", hl.dsp.workspace.toggle_special("phone"))
+exec(mainMod .. " + Escape", home .. "/.config/hypr/scripts/power-menu.sh")
+exec(mainMod .. " + CTRL + L", home .. "/.config/hypr/scripts/lock.sh")
+exec(mainMod .. " + CTRL + ALT + L", home .. "/.config/hypr/scripts/screensaver-awake.sh")
+exec(mainMod .. " + backslash", home .. "/.config/hypr/scripts/scratchpad-manager.sh menu")
+exec(mainMod .. " + SHIFT + backslash", home .. "/.config/hypr/scripts/scratchpad-manager.sh toggle scene")
+exec(mainMod .. " + ALT + backslash", home .. "/.config/hypr/scripts/scratchpad-manager.sh launch ai")
+exec(mainMod .. " + CTRL + backslash", home .. "/.config/hypr/scripts/scratchpad-manager.sh launch logs")
+exec(mainMod .. " + CTRL + ALT + backslash", home .. "/.config/hypr/scripts/scratchpad-manager.sh launch db")
+exec(mainMod .. " + grave", home .. "/.config/hypr/scripts/sidepanel.sh toggle")
+exec(mainMod .. " + SHIFT + grave", home .. "/.config/hypr/scripts/sidepanel.sh send")
+exec(mainMod .. " + CTRL + grave", home .. "/.config/hypr/scripts/sidepanel.sh stash")
+exec(mainMod .. " + ALT + grave", home .. "/.config/hypr/scripts/sidepanel.sh toggle")
+exec(mainMod .. " + O", home .. "/.config/hypr/scripts/set-wallpaper.sh --pick")
+exec(mainMod .. " + SHIFT + O", home .. "/.config/hypr/scripts/set-wallpaper.sh --next")
+exec(mainMod .. " + ALT + N", home .. "/.config/hypr/scripts/notif-dnd-toggle.sh")
+exec(mainMod .. " + SHIFT + N", home .. "/.config/hypr/scripts/open-notes.sh")
+exec(mainMod .. " + ALT + E", home .. "/.config/hypr/scripts/open-notes.sh")
+bind(mainMod .. " + SHIFT + Q", hl.dsp.window.close())
+exec(mainMod .. " + SHIFT + M", home .. "/.config/hypr/scripts/minimize-window.sh minimize")
+exec(mainMod .. " + F", home .. "/.config/hypr/scripts/float-toggle-smart.sh")
+bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized" }))
+bind(mainMod .. " + CTRL + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+-- SUPER+M is media panel (canonical). Maximized fullscreen lives on SUPER+SHIFT+F.
+bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo())
+-- SUPER+C is control centre (canonical). Window center moved to SUPER+CTRL+C.
+bind(mainMod .. " + CTRL + C", hl.dsp.window.center())

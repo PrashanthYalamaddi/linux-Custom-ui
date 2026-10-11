@@ -1,0 +1,116 @@
+@theme "theme.rasi"
+
+* {
+    font: "JetBrainsMono Nerd Font 12";
+}
+
+window {
+    location: center;
+    anchor: center;
+    width: 96%;
+    height: 94%;
+    border: 2px;
+    border-color: @accent;
+    border-radius: 18px;
+    background-color: @bg;
+    padding: 16px;
+}
+
+mainbox {
+    spacing: 14px;
+    padding: 10px 14px 14px 14px;
+    background-color: transparent;
+}
+
+inputbar {
+    spacing: 12px;
+    padding: 14px;
+    border: 1px;
+    border-color: @accent;
+    border-radius: 14px;
+    background-color: @bg-alt;
+}
+
+prompt {
+    text-color: @accent;
+    font: "JetBrainsMono Nerd Font Bold 13";
+}
+
+entry {
+    text-color: @fg;
+    placeholder: "Type to filter commands, aliases, plugins, configs...";
+    placeholder-color: @fg-muted;
+    font: "JetBrainsMono Nerd Font 12";
+}
+
+message {
+    padding: 0px 4px 8px 4px;
+    text-color: @fg-muted;
+    font: "JetBrainsMono Nerd Font 11";
+}
+
+mode-switcher {
+    spacing: 8px;
+    background-color: transparent;
+}
+
+button {
+    padding: 9px 12px;
+    border-radius: 11px;
+    border: 1px;
+    border-color: @accent;
+    background-color: @bg-alt;
+    text-color: @fg-muted;
+}
+
+button selected {
+    background-color: @accent;
+    border-color: @accent;
+    text-color: @bg;
+}
+
+listview {
+    lines: 24;
+    columns: 1;
+    fixed-height: false;
+    dynamic: true;
+    cycle: true;
+    spacing: 5px;
+    scrollbar: true;
+    border: 1px;
+    border-color: @accent;
+    border-radius: 14px;
+    background-color: @bg-alt;
+    padding: 10px;
+}
+
+element {
+    padding: 8px 12px;
+    border-radius: 9px;
+    background-color: transparent;
+    text-color: @fg-muted;
+}
+
+element normal.normal {
+    background-color: transparent;
+    text-color: @fg-muted;
+}
+
+element selected.normal {
+    background-color: @accent;
+    text-color: @bg;
+}
+
+element-text {
+    text-color: inherit;
+    background-color: transparent;
+    highlight: bold;
+}
+
+scrollbar {
+    width: 6px;
+    border-radius: 100%;
+    handle-width: 8px;
+    handle-color: @good;
+    background-color: @bg-alt;
+}

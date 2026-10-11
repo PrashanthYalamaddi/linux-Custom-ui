@@ -1,0 +1,61 @@
+[core]
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	side-by-side = true
+	line-numbers = true
+	hyperlinks = true
+
+[merge]
+	conflictstyle = zdiff3
+
+[diff]
+	colorMoved = default
+[feature]
+	manyFiles = true
+[index]
+	version = 4
+[core]
+	untrackedCache = true
+	preloadIndex = true
+	hooksPath = /home/namik/.config/git/hooks
+	sshCommand = ssh -i /home/namik/.ssh/id_ed25519
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[user]
+	email = namikofficial@gmail.com
+	name = namikofficial
+	signingkey = /home/namik/.ssh/id_ed25519
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[tag]
+	gpgsign = true
+[gpg "ssh"]
+	allowedSignersFile = /home/namik/.config/git/allowed_signers
+[pull]
+	rebase = true
+[rebase]
+	autoStash = true
+[fetch]
+	writeCommitGraph = true
+[gc]
+	writeCommitGraph = true
+[maintenance]
+	auto = true
+	commitGraph = true
+[pack]
+	threads = 0
+[init]
+	defaultBranch = main
+[url "git@github.com:"]
+	insteadOf = https://github.com/

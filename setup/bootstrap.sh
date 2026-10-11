@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEFAULT_SCRIPTS_DIR=""
+for candidate in \
+  "$REPO_DIR/private/scripts" \
+  "$HOME/Documents/code/scripts" \
+  "$HOME/dev/personal-scripts"; do
+  if [ -d "$candidate" ]; then
+    DEFAULT_SCRIPTS_DIR="$candidate"
+    break
+  fi
+done
+DEFAULT_SCRIPTS_DIR="${DEFAULT_SCRIPTS_DIR:-$REPO_DIR/private/scripts}"
+SCRIPTS_DIR="${SCRIPTS_DIR:-$DEFAULT_SCRIPTS_DIR}"
+RUN_PACKAGES=0
+WITH_AUR=0
+WITH_NVIDIA=""
+DRY_RUN=0
+NO_BACKUP=0
+SET_DEFAULT_SHELL=0
+INSTALL_LOCAL_AI=1
+INSTALL_LOCAL_AI_MODELS=0
+INSTALL_ZSH_PLUGINS=1
+INSTALL_TMUX_PLUGINS=1
+INSTALL_HYPR_PLUGINS=0
+STAMP="$(date +%Y%m%d-%H%M%S)"
+
+usage() {
+  cat <<USAGE
+Usage: $0 [options]
+  --scripts-dir PATH   Path to scripts repo (default: auto-detect private/scripts, then legacy locations)
+  --install-packages   Run setup/install-packages.sh after linking
+  --with-aur           Include AUR packages (requires yay)
+  --with-nvidia        Opt in to repo-managed NVIDIA package installation
+  --no-nvidia          Skip repo-managed NVIDIA package installation
+  --no-zsh-plugins     Skip optional zsh plugin sync
+  --no-tmux-plugins    Skip optional tmux plugin sync
+  --install-hypr-plugins  Build/install hyprexpo locally (must run in Hyprland session)
+  --install-local-ai   Install local AI runtime links/config
+  --install-local-ai-models
+                       Also download autoload local AI models
+  --no-local-ai        Skip local AI runtime install/linking
+  --dry-run            Print actions without writing changes
+  --no-backup          Replace existing files without backup copy
+  --set-default-shell  Set the account login shell to /usr/bin/zsh
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --scripts-dir)
+      shift
+      SCRIPTS_DIR="${1:-}"
+      [ -n "$SCRIPTS_DIR" ] || {
+        echo "--scripts-dir requires a path" >&2
+        exit 1
+      }
+      ;;
+    --install-packages) RUN_PACKAGES=1 ;;
+    --with-aur) WITH_AUR=1 ;;
+    --with-nvidia) WITH_NVIDIA="--with-nvidia" ;;
+    --no-nvidia) WITH_NVIDIA="--no-nvidia" ;;
+    --no-zsh-plugins) INSTALL_ZSH_PLUGINS=0 ;;
+    --no-tmux-plugins) INSTALL_TMUX_PLUGINS=0 ;;
+    --install-hypr-plugins) INSTALL_HYPR_PLUGINS=1 ;;
+    --install-local-ai) INSTALL_LOCAL_AI=1 ;;
+    --install-local-ai-models)
+      INSTALL_LOCAL_AI=1
+      INSTALL_LOCAL_AI_MODELS=1
+      ;;
+    --no-local-ai)
+      INSTALL_LOCAL_AI=0
+      INSTALL_LOCAL_AI_MODELS=0
+      ;;
+    --dry-run) DRY_RUN=1 ;;
+    --no-backup) NO_BACKUP=1 ;;
+    --set-default-shell) SET_DEFAULT_SHELL=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+backup_if_needed() {
+  local target="$1"
+
+  if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+    return 0
+  fi
+
+  if ((NO_BACKUP)); then
+    if ((DRY_RUN)); then
+      echo "[dry-run] rm -rf '$target'"
+    else
+      rm -rf "$target"
+    fi
+    return 0
+  fi
+
+  local backup="${target}.bak.${STAMP}"
+  if ((DRY_RUN)); then
+    echo "[dry-run] mv '$target' '$backup'"
+  else
+    mv "$target" "$backup"
+  fi
+}
+
+link_path() {
+  local source="$1"
+  local target="$2"
+
+  if [ ! -e "$source" ] && [ ! -L "$source" ]; then
+    echo "Missing source: $source" >&2
+    exit 1
+  fi
+
+  mkdir -p "$(dirname "$target")"
+
+  if [ -L "$target" ]; then
+    local existing
+    existing="$(readlink -f "$target" || true)"
+    local desired
+    desired="$(readlink -f "$source" || true)"
+    if [ -n "$existing" ] && [ "$existing" = "$desired" ]; then
+      echo "ok   $target"
+      return 0
+    fi
+  fi
+
+  backup_if_needed "$target"
+
+  if ((DRY_RUN)); then
+    echo "[dry-run] ln -s '$source' '$target'"
+  else
+    ln -s "$source" "$target"
+    echo "link $target -> $source"
+  fi
+}
+
+copy_path() {
+  local source="$1"
+  local target="$2"
+
+  if [ ! -e "$source" ] && [ ! -L "$source" ]; then
+    echo "Missing source: $source" >&2
+    exit 1
+  fi
+
+  if [ -f "$source" ] && [ -f "$target" ] && cmp -s "$source" "$target"; then
+    echo "ok   $target"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target")"
+
+  backup_if_needed "$target"
+
+  if ((DRY_RUN)); then
+    echo "[dry-run] cp -a '$source' '$target'"
+  else
+    cp -a "$source" "$target"
+    echo "copy $target <- $source"
+  fi
+}
+
+link_runtime_path() {
+  local source="$1"
+  local target="$2"
+
+  mkdir -p "$(dirname "$target")"
+
+  if [ -L "$target" ]; then
+    local existing
+    existing="$(readlink "$target" || true)"
+    if [ -n "$existing" ] && [ "$existing" = "$source" ]; then
+      echo "ok   $target"
+      return 0
+    fi
+  fi
+
+  backup_if_needed "$target"
+
+  if ((DRY_RUN)); then
+    echo "[dry-run] ln -s '$source' '$target'"
+  else
+    ln -s "$source" "$target"
+    echo "link $target -> $source"
+  fi
+}
+
+link_path "$REPO_DIR/zshrc" "$HOME/.zshrc"
+link_path "$REPO_DIR/bashrc" "$HOME/.bashrc"
+link_path "$REPO_DIR/configs/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+link_path "$REPO_DIR/configs/claude/agents" "$HOME/.claude/agents"
+link_path "$REPO_DIR/configs/claude/mcp.json" "$HOME/.claude/.mcp.json"
+link_path "$REPO_DIR/sddm/dmrc" "$HOME/.dmrc"
+link_path "$REPO_DIR/git/gitconfig" "$HOME/.gitconfig"
+link_path "$REPO_DIR/git/hooks/commit-msg" "$HOME/.config/git/hooks/commit-msg"
+link_path "$REPO_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
+link_path "$REPO_DIR/tmux/tmux-help" "$HOME/.local/bin/tmux-help"
+link_path "$REPO_DIR/tmux/tmux-sessions" "$HOME/.local/bin/tmux-sessions"
+link_path "$REPO_DIR/tmux/tmux-project-cockpit" "$HOME/.local/bin/tmux-project-cockpit"
+link_path "$REPO_DIR/tmux/tmux-actions" "$HOME/.local/bin/tmux-actions"
+link_path "$REPO_DIR/tmux/tmux-diagnostics" "$HOME/.local/bin/tmux-diagnostics"
+link_path "$REPO_DIR/setup/dev-health.sh" "$HOME/.local/bin/dev-health"
+link_path "$REPO_DIR/setup/check-stale-references.sh" "$HOME/.local/bin/dotfiles-stale-check"
+link_path "$REPO_DIR/setup/project-profile.sh" "$HOME/.local/bin/project-profile"
+link_path "$REPO_DIR/setup/mcp-profile.sh" "$HOME/.local/bin/mcp-profile"
+link_path "$REPO_DIR/setup/resource-report.sh" "$HOME/.local/bin/resource-report"
+link_path "$REPO_DIR/hypr/scripts/chatgpt-launcher.sh" "$HOME/.local/bin/chatgpt-launcher.sh"
+link_path "$REPO_DIR/setup/client-backup.sh" "$HOME/.local/bin/client-backup"
+link_path "$REPO_DIR/setup/workstationctl" "$HOME/.local/bin/workstationctl"
+link_path "$REPO_DIR/system/node-runtime" "$HOME/.local/bin/node"
+link_path "$REPO_DIR/system/node-runtime" "$HOME/.local/bin/npm"
+link_path "$REPO_DIR/system/node-runtime" "$HOME/.local/bin/npx"
+link_path "$REPO_DIR/system/pnpm" "$HOME/.local/bin/pnpm"
+link_path "$REPO_DIR/system/desktop-launch" "$HOME/.local/bin/desktop-launch"
+link_path "$REPO_DIR/system/code" "$HOME/.local/bin/code"
+link_path "$REPO_DIR/tools/code-doctor/code-doctor" "$HOME/.local/bin/code-doctor"
+link_path "$REPO_DIR/SHELL_CHEATSHEET.md" "$HOME/SHELL_CHEATSHEET.md"
+link_path "$REPO_DIR/atuin/config.toml" "$HOME/.config/atuin/config.toml"
+link_path "$REPO_DIR/starship.toml" "$HOME/.config/starship.toml"
+link_path "$REPO_DIR/nvim" "$HOME/.config/nvim"
+link_path "$REPO_DIR/uwsm/default-id" "$HOME/.config/uwsm/default-id"
+link_path "$REPO_DIR/uwsm/env" "$HOME/.config/uwsm/env"
+link_path "$REPO_DIR/uwsm/env-hyprland" "$HOME/.config/uwsm/env-hyprland"
+link_path "$REPO_DIR/settings/features.env" "$HOME/.config/dotfiles/features.env"
+link_path "$REPO_DIR/settings/machine.env" "$HOME/.config/dotfiles/machine.env"
+link_path "$REPO_DIR/android/android-env.conf" "$HOME/.config/environment.d/60-android.conf"
+link_path "$REPO_DIR/android/android-env.sh" "$HOME/.config/dotfiles/android-env.sh"
+link_path "$REPO_DIR/xdg-desktop-portal/hyprland-portals.conf" "$HOME/.config/xdg-desktop-portal/hyprland-portals.conf"
+link_path "$REPO_DIR/systemd/user/noxflow-session-optional.service" "$HOME/.config/systemd/user/noxflow-session-optional.service"
+link_path "$REPO_DIR/systemd/user/noxflow-shell.service" "$HOME/.config/systemd/user/noxflow-shell.service"
+link_path "$REPO_DIR/systemd/user/noxflow-fallback.service" "$HOME/.config/systemd/user/noxflow-fallback.service"
+
+# Remove the obsolete managed drop-in that discarded the GPU selected by
+# env-hyprland. Unrelated local overrides are deliberately left alone.
+legacy_gpu_override="$HOME/.config/systemd/user/wayland-wm@hyprland.desktop.service.d/10-aq-drm-devices.conf"
+if [ -L "$legacy_gpu_override" ]; then
+  if ((DRY_RUN)); then
+    echo "[dry-run] rm '$legacy_gpu_override'"
+  else
+    rm -f "$legacy_gpu_override"
+  fi
+fi
+
+mkdir -p "$HOME/.config/hypr" "$HOME/.config/kitty"
+link_path "$REPO_DIR/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua"
+link_path "$REPO_DIR/hypr/conf" "$HOME/.config/hypr/conf"
+link_path "$REPO_DIR/hypr/lib" "$HOME/.config/hypr/lib"
+link_path "$REPO_DIR/hypr/monitor-layout.json" "$HOME/.config/hypr/monitor-layout.json"
+link_path "$REPO_DIR/hypr/hypridle.conf" "$HOME/.config/hypr/hypridle.conf"
+link_path "$REPO_DIR/hypr/hyprlock.conf" "$HOME/.config/hypr/hyprlock.conf"
+link_path "$REPO_DIR/hypr/hyprpaper.conf" "$HOME/.config/hypr/hyprpaper.conf"
+link_path "$REPO_DIR/hypr/recovery.conf" "$HOME/.config/hypr/recovery.conf"
+link_path "$REPO_DIR/hypr/scripts" "$HOME/.config/hypr/scripts"
+link_path "$REPO_DIR/xdg/applications/chatgpt.desktop" "$HOME/.local/share/applications/chatgpt.desktop"
+link_path "$REPO_DIR/wayle/config.toml" "$HOME/.config/wayle/config.toml"
+link_path "$REPO_DIR/shell/noxflow" "$HOME/.config/noxflow/shell"
+link_path "$REPO_DIR/hypr/rofi" "$HOME/.config/rofi"
+link_path "$REPO_DIR/hypr/wlogout" "$HOME/.config/wlogout"
+link_runtime_path "$HOME/.cache/hypr/theme-colors-rofi.rasi" "$HOME/.config/rofi/theme-colors-rofi.rasi"
+link_path "$REPO_DIR/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
+link_path "$REPO_DIR/chrome/chrome-flags.conf" "$HOME/.config/chrome-flags.conf"
+link_path "$REPO_DIR/cursor/cursor-flags.conf" "$HOME/.config/cursor-flags.conf"
+link_path "$REPO_DIR/code/code-flags.conf" "$HOME/.config/code-flags.conf"
+copy_path "$REPO_DIR/mime/mimeapps.list" "$HOME/.config/mimeapps.list"
+link_path "$REPO_DIR/theme/gtk-3.0/settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
+link_path "$REPO_DIR/theme/gtk-4.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
+
+if ((! DRY_RUN)) && command -v luac >/dev/null 2>&1; then
+  "$REPO_DIR/hypr/scripts/hypr-validate.sh" "$REPO_DIR/hypr/hyprland.lua"
+fi
+
+if ((! DRY_RUN)) && command -v systemctl >/dev/null 2>&1; then
+  systemctl --user daemon-reload 2>/dev/null || true
+fi
+
+if ((DRY_RUN)); then
+  echo "[dry-run] mkdir -p '$HOME/.local/bin'"
+else
+  mkdir -p "$HOME/.local/bin"
+fi
+
+if [ -d "$SCRIPTS_DIR/bin" ]; then
+  while IFS= read -r -d '' file; do
+    target="$HOME/.local/bin/$(basename "$file")"
+    if ((DRY_RUN)); then
+      echo "[dry-run] ln -sf '$file' '$target'"
+    else
+      ln -sf "$file" "$target"
+    fi
+  done < <(find "$SCRIPTS_DIR/bin" -maxdepth 1 -type f -print0)
+else
+  echo "warning: scripts bin directory not found at $SCRIPTS_DIR/bin" >&2
+  echo "warning: public dotfiles setup will continue without private scripts" >&2
+  echo "warning: if you have access, run: git submodule update --init private/scripts" >&2
+fi
+
+if ((INSTALL_LOCAL_AI)); then
+  if ((DRY_RUN)); then
+    printf '[dry-run] mkdir -p %q %q %q\n' \
+      "$HOME/.config/local-ai/templates" "$HOME/.config/local-ai/skills" "$HOME/.config/local-ai/system"
+  else
+    mkdir -p "$HOME/.config/local-ai/templates" "$HOME/.config/local-ai/skills" "$HOME/.config/local-ai/system"
+  fi
+  for f in "$REPO_DIR/ai/templates/"*.md; do
+    [ -e "$f" ] || continue
+    link_path "$f" "$HOME/.config/local-ai/templates/$(basename "$f")"
+  done
+  for f in "$REPO_DIR/ai/skills/"*.md; do
+    [ -e "$f" ] || continue
+    link_path "$f" "$HOME/.config/local-ai/skills/$(basename "$f")"
+  done
+  for f in "$REPO_DIR/ai/system/"*.md; do
+    [ -e "$f" ] || continue
+    link_path "$f" "$HOME/.config/local-ai/system/$(basename "$f")"
+  done
+fi
+
+if ((RUN_PACKAGES)); then
+  cmd=("$SCRIPT_DIR/install-packages.sh")
+  ((WITH_AUR)) && cmd+=(--with-aur)
+  [ -n "$WITH_NVIDIA" ] && cmd+=("$WITH_NVIDIA")
+  ((DRY_RUN)) && cmd+=(--dry-run)
+  "${cmd[@]}"
+fi
+
+if ((INSTALL_ZSH_PLUGINS)); then
+  cmd=("$SCRIPT_DIR/install-zsh-plugins.sh")
+  ((DRY_RUN)) && cmd+=(--dry-run)
+  "${cmd[@]}"
+fi
+
+if ((INSTALL_TMUX_PLUGINS)); then
+  cmd=("$SCRIPT_DIR/install-tmux-plugins.sh")
+  ((DRY_RUN)) && cmd+=(--dry-run)
+  "${cmd[@]}"
+fi
+
+if ((SET_DEFAULT_SHELL)); then
+  zsh_path="$(command -v zsh || true)"
+  if [ -z "$zsh_path" ]; then
+    echo "Cannot set the default shell: zsh is not installed." >&2
+    exit 1
+  fi
+  current_shell="$(getent passwd "$USER" | cut -d: -f7 || true)"
+  if [ "$current_shell" != "$zsh_path" ]; then
+    if ((DRY_RUN)); then
+      echo "[dry-run] chsh -s '$zsh_path' '$USER'"
+    else
+      chsh -s "$zsh_path" "$USER"
+      echo "login shell set to $zsh_path; start a new login session to activate it"
+    fi
+  else
+    echo "ok   login shell is already $zsh_path"
+  fi
+fi
+
+if ((INSTALL_HYPR_PLUGINS)); then
+  if ((DRY_RUN)); then
+    echo "[dry-run] $SCRIPT_DIR/install-hypr-plugins.sh"
+  else
+    "$SCRIPT_DIR/install-hypr-plugins.sh"
+  fi
+fi
+
+if ((INSTALL_LOCAL_AI)); then
+  cmd=("$SCRIPT_DIR/install-local-ai-stack.sh" --install-runtime)
+  ((DRY_RUN)) && cmd+=(--dry-run)
+  "${cmd[@]}"
+  if ((INSTALL_LOCAL_AI_MODELS)); then
+    cmd=("$SCRIPT_DIR/install-local-ai-stack.sh" --install-models)
+    ((DRY_RUN)) && cmd+=(--dry-run)
+    "${cmd[@]}"
+  fi
+fi
+
+cat <<DONE
+
+Bootstrap complete.
+- Reload shell: exec zsh
+- Set the account login shell with: $0 --set-default-shell
+- Restart Hyprland/login session to activate hyprland.lua after migration
+DONE

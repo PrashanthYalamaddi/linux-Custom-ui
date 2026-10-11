@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# NoxFlow tmux guide — opened with Prefix + ?
+set -u
+
+B=$'\033[1m'; D=$'\033[2m'; R=$'\033[0m'
+PEACH=$'\033[38;5;216m'; SAGE=$'\033[38;5;157m'; PLUM=$'\033[38;5;183m'
+
+section() {
+  printf '\n%s%s%s\n' "$B$PEACH" "$1" "$R"
+  printf '%s────────────────────────────────────────────────────────%s\n' "$D" "$R"
+}
+item() { printf '  %s%-18s%s %s\n' "$SAGE" "$1" "$R" "$2"; }
+
+{
+  printf '\n%s╭────────────────────────────────────────────────────╮%s\n' "$PLUM$B" "$R"
+  printf '%s│              NoxFlow tmux cockpit                │%s\n' "$PLUM$B" "$R"
+  printf '%s│       Prefix = Ctrl-Space (press, release)       │%s\n' "$PLUM$B" "$R"
+  printf '%s╰────────────────────────────────────────────────────╯%s\n' "$PLUM$B" "$R"
+
+  section 'START HERE'
+  item 'Prefix + ?' 'open this guide'
+  item 'Prefix + p' 'project cockpit: session, editor, Git, logs, checks'
+  item 'Prefix + a' 'searchable action palette'
+  item 'Prefix + D' 'project and system diagnostics'
+  item 'Prefix + s' 'switch, rename, create, or kill sessions'
+  item 'Prefix + t' 'scratch terminal popup'
+  item 'Prefix + g' 'lazygit in the current directory'
+  item 'Prefix + O' 'OpenCode session browser'
+
+  section 'WINDOWS · browser-like tabs'
+  item 'Prefix + c' 'new window in the current directory'
+  item 'Prefix + ,' 'rename the current window'
+  item 'Prefix + 1-9' 'jump to a window'
+  item 'Alt + h / l' 'previous / next window (no prefix)'
+  item 'Prefix + Tab' 'next window'
+  item 'Prefix + X' 'kill the current window (confirmed)'
+
+  section 'PANES · split your workspace'
+  item 'Prefix + |' 'split right'
+  item 'Prefix + -' 'split down'
+  item 'Prefix + h/j/k/l' 'move between panes'
+  item 'Prefix + H/J/K/L' 'resize the active pane'
+  item 'Prefix + z' 'zoom / unzoom the active pane'
+  item 'Prefix + Space' 'cycle layouts'
+  item 'Prefix + q' 'show pane numbers'
+  item 'Prefix + x' 'kill the current pane (confirmed)'
+
+  section 'COPY MODE · scrollback and selection'
+  item 'Prefix + [' 'enter vi copy mode'
+  item 'v' 'start a selection'
+  item 'Ctrl + v' 'rectangle selection'
+  item 'y / Enter' 'copy to the system clipboard'
+  item 'F' 'smart-pick URLs, paths, hashes (plugin)'
+  item 'q / Escape' 'leave copy mode'
+
+  section 'PERSISTENCE AND PLUGINS'
+  item 'Prefix + Ctrl-s' 'save the session manually'
+  item 'Prefix + Ctrl-r' 'restore a saved session'
+  item 'Prefix + I' 'install TPM plugins'
+  item 'Prefix + U' 'update TPM plugins'
+  item 'Prefix + u' 'pick a URL from scrollback'
+  item "Prefix + \\" 'open the context menu'
+
+  printf '\n%sTry this 5-minute loop:%s split → move → Prefix+p → Prefix+z → Prefix+D → Prefix+d to detach.\n' "$B" "$R"
+  printf '%sSessions keep running after detach: Prefix+d detaches, tmux attach restores them.%s\n\n' "$D" "$R"
+} | less -R -X -F

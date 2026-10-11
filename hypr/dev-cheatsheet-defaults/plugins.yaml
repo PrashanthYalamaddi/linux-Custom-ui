@@ -1,0 +1,19 @@
+category: Plugins
+slug: plugins
+entries:
+  - key: Hyprland + hyprexpo
+    description: mission-control style workspace overview
+    copy: hyprctl plugin list
+    source: ~/.config/hypr/hyprland.lua
+  - key: Wayle shell
+    description: top panel, notifications, and widgets
+    copy: ~/.config/wayle/config.toml
+    source: ~/.config/wayle/config.toml
+  - key: Neovim Lazy plugins
+    description: open plugin manager
+    copy: nvim +Lazy
+    source: ~/.config/nvim/lazy-lock.json
+  - key: Rofi themes
+    description: launcher/palette theme files
+    copy: ~/.config/rofi
+    source: ~/.config/rofi

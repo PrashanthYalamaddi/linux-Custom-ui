@@ -1,0 +1,192 @@
+# Local Developer Workflow
+
+This is the source-of-truth workflow for day-to-day development on this workstation.
+
+## Daily Readiness
+
+Run this before focused work:
+
+```sh
+dev-health
+```
+
+Use the deeper path when something feels off or after a system update:
+
+```sh
+dev-health --full
+```
+
+After upgrading Kitty, scrcpy, Neovim, libvirt, or the desktop stack, run the
+read-only workstation verification pass:
+
+```sh
+upgrade-verify
+```
+
+For Kitty-specific checks, run the config probe and confirm the terminal identity:
+
+```sh
+kitty --config "$DOTFILES_HOME/kitty/kitty.conf" --dump-commands
+echo "$TERM"
+infocmp xterm-kitty >/dev/null && echo "kitty terminfo is installed"
+```
+
+For Android and virtualization checks:
+
+```sh
+scrcpy --list-encoders
+virsh list --all
+virsh net-list --all
+virsh pool-list --all
+```
+
+The fast check covers:
+
+- dotfiles git state
+- core CLI/editor availability
+- settings links and generated config health
+- stale retired-stack references
+- shell script lint/format checks when `shellcheck` and `shfmt` are installed
+- Hyprland/Wayle/portal status
+- clipboard watcher state
+- local AI/RAG status
+- known project profile state
+- disk pressure
+
+## Guardrails
+
+Run this after desktop-stack or docs cleanup:
+
+```sh
+dotfiles-stale-check
+```
+
+It blocks retired panel/power-stack guidance and retired local-AI endpoints from creeping back into active docs/scripts.
+
+Run shell checks directly when editing scripts:
+
+```sh
+setup/check-shell.sh
+```
+
+## Project Profiles
+
+Known profiles:
+
+```sh
+project-profile list
+project-profile status
+```
+
+Useful actions:
+
+```sh
+project-profile path <project-id-or-alias>
+project-profile edit <project-id-or-alias>
+project-profile tmux <project-id-or-alias>
+project-profile dev <project-id-or-alias>
+project-profile launch <project-id-or-alias>
+project-profile check <project-id-or-alias>
+project-resume
+```
+
+Short alias:
+
+```sh
+ppr status
+ppr launch dotfiles
+```
+
+`project-profile` no longer owns a hard-coded project list, check commands, development commands, or pane topology.
+It resolves IDs, names and aliases through the canonical Workbench registry. `tmux` and `launch` use the manifest's
+session name and remain available from the read-only XDG cache when Workbench is offline. `dev` resolves the manifest
+scene or single development workflow, while `check` resolves the canonical verification workflow; both fail clearly
+if the API is unavailable or the choice is ambiguous.
+
+When VS Code exposes only a workspace name in its title, the observer resolves that name through the canonical
+registry cache and submits the matched workspace path as focused-editor evidence. The match must be exact and unique;
+the observer does not select a project from a generic editor process CWD or an ambiguous title.
+
+While the graphical observer is running, nested source changes are detected through a bounded Linux inotify tree.
+Dependency, build and index directories are pruned, bursts are debounced, and the watcher asks Workbench for one
+project-scoped status refresh. It does not execute Git or Docker itself.
+
+Nox Billings helpers:
+
+```sh
+nox-billings
+nox-billings-edit
+nox-billings-emulator
+nox-billings-up        # tmux-based dev stack (API/web/mobile); pass --open for Kitty windows
+```
+
+trackMe helpers:
+
+```sh
+trackme
+trackme-edit
+trackme-up
+trackme-env-edit staging|production
+```
+
+## Client Backups
+
+Client source repositories and remote staging/production database dumps are encrypted with Restic before being synchronized from `~/syncthing/client-backups`. Configure the backup-only SSH hosts and Restic password outside Git, then enable the timer:
+
+```sh
+sudo pacman -S restic
+client-backup init-config
+$EDITOR ~/.config/nox-backup/client-backup.conf
+setup/configure-client-backup.sh
+client-backup verify
+```
+
+The timer runs nightly, retains 30 daily snapshots, and does not dump local development databases. `client-backup status` shows the latest snapshot. Restore only into a new non-production database.
+
+`project-resume restore` is the opposite path: it resolves the canonical active/selected project, resumes its matching
+shared Workbench session, opens the manifest editor and tmux session, and restores allowlisted manifest scratchpads
+plus Sidecar. Use `project-resume launch` for editor/tmux without manifest scratchpad restoration, or
+`project-resume --fallback-path /absolute/path` for a terminal-only offline fallback. The fallback never creates a
+second task/session record or executes a legacy project command.
+
+## AI runtime boundary
+
+The repository no longer installs or manages a local model runtime, RAG stack,
+embedding server, or AI Workbench desktop bridge. Choose and install a future
+model/runtime separately; keep its configuration outside this repository until
+the replacement contract is decided. OpenCode and Codex remain available as
+the hosted/developer-agent interfaces.
+
+## Scratchpad Roles
+
+Keep scratchpads role-specific instead of treating them as interchangeable terminals:
+
+- `Super+\`: Scratch Hub for all roles, Sidecar actions, and the full scene
+- `Super+Shift+\`: full work scene with main window, AI, and runner/logs
+- `Super+Alt+\`: AI role, project-rooted shell for OpenCode/local models
+- `Super+Ctrl+\`: runner/logs role, project-rooted command terminal
+- `Super+Ctrl+Alt+\`: database role
+- Obsidian and Browser DevTools roles: use the hub cards
+- ``Super+` ``: show/hide Sidecar, ``Super+Shift+` ``: move focused window to Sidecar, ``Super+Ctrl+` ``: stash, ``Super+Shift+1..0``: move focused Sidecar window back to a workspace
+- Multiple Sidecar windows tile inside the shelf instead of stacking on top of each other.
+
+## Desktop Recovery
+
+Use the recovery menu when the desktop is functional but one layer is stale:
+
+```sh
+~/.config/hypr/scripts/desktop-recovery.sh
+```
+
+It offers:
+
+- run `dev-health`
+- restore Wayle panel
+- restart portals
+- safe Hyprland reload
+- reapply theme
+- open desktop logs
+- run settings doctor
+- show project profile status
+
+The same recovery action is available from Quick Actions and the desktop command palette.

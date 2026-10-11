@@ -1,0 +1,74 @@
+#!/usr/bin/env sh
+set -eu
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 || return 0
+  notify-send -a "Reload" "$1" "${2:-}"
+}
+
+finish_slow_refresh() {
+  if [ -x "$HOME/.config/hypr/scripts/launcher.sh" ]; then
+    "$HOME/.config/hypr/scripts/launcher.sh" --rebuild-cache >/dev/null 2>&1 || true
+  fi
+
+  rm -f "$HOME/.local/share/applications/mimeinfo.cache" >/dev/null 2>&1 || true
+
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+  fi
+
+}
+
+notify "Reloading..." "Applying theme and refreshing running apps"
+
+if command -v gsettings >/dev/null 2>&1; then
+  gsettings set org.gnome.desktop.interface color-scheme "prefer-dark" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface icon-theme "Papirus-Dark" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface cursor-theme "Bibata-Modern-Ice" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface font-name "Noto Sans 11" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface monospace-font-name "JetBrainsMono Nerd Font 11" >/dev/null 2>&1 || true
+fi
+
+kitty_runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+
+kitty_remote_all() {
+  command -v kitty >/dev/null 2>&1 || return 0
+  for sock in "$kitty_runtime_dir"/kitty-control*; do
+    [ -S "$sock" ] || continue
+    kitty @ --to "unix:$sock" "$@" >/dev/null 2>&1 || true
+  done
+}
+
+current_wall=""
+if [ -f "$HOME/.cache/current-wallpaper" ]; then
+  current_wall="$(cat "$HOME/.cache/current-wallpaper" 2>/dev/null || true)"
+fi
+
+if [ -n "$current_wall" ] && [ -f "$current_wall" ]; then
+  if [ -x "$HOME/.config/hypr/scripts/sync-lock-wallpaper.sh" ]; then
+    "$HOME/.config/hypr/scripts/sync-lock-wallpaper.sh" "$current_wall" >/dev/null 2>&1 || true
+  fi
+  if [ -x "$HOME/.config/hypr/scripts/theme-sync.sh" ]; then
+    "$HOME/.config/hypr/scripts/theme-sync.sh" "$current_wall" >/dev/null 2>&1 || true
+  fi
+fi
+
+if [ -x "$HOME/.config/hypr/scripts/panel-switch.sh" ]; then
+  "$HOME/.config/hypr/scripts/panel-switch.sh" show >/dev/null 2>&1 || true
+fi
+
+# NoxFlow owns the panel in the normal session. Theme refreshes deliberately
+# do not restart it: the runtime token watcher is tracked as the next shell
+# milestone, and restarting here would discard panel state.
+
+kitty_remote_all load-config "$HOME/.config/kitty/kitty.conf"
+
+if command -v hyprctl >/dev/null 2>&1; then
+  "$HOME/.config/hypr/scripts/hypr-reload-safe.sh" >/dev/null 2>&1 ||
+    notify "Hyprland restart needed" "This session was started from legacy hyprlang; Lua config loads on next login."
+fi
+
+notify "Reload complete" "Theme + Kitty + panel refreshed"
+
+finish_slow_refresh >/dev/null 2>&1 &
